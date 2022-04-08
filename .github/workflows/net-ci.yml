@@ -1,0 +1,66 @@
+name: .NET CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # Build and test on .NET Core
+  dotnet-core-ci:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        # Force use of specific version until https://github.com/dotnet/format/issues/1500 is fixed
+        dotnet-version: ['6.0.100']
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v1.7.2
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+
+      - name: Install dependencies
+        run: dotnet restore
+
+      - name: Build solution
+        run: dotnet build
+
+      - name: Run tests
+        run: dotnet test
+
+      - name: Run linter
+        run: dotnet format --verify-no-changes
+
+  # Build and test on .NET Framework
+  dotnet-framework-ci:
+    runs-on: windows-2022
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v1
+
+      - name: Set up NuGet
+        uses: NuGet/setup-nuget@v1.0.5
+
+      - name: Set up VSTest
+        uses: darenm/Setup-VSTest@v1
+
+      - name: Install dependencies
+        run: nuget restore duo_universal_csharp.sln
+
+      - name: Build solution
+        run: msbuild.exe duo_universal_csharp.sln
+
+      - name: Run DuoUniversal.Tests
+        run: vstest.console.exe .\DuoUniversal.Tests\bin\Debug\net6.0\DuoUniversal.Tests.dll
+
